@@ -15,12 +15,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
+import config_constants
 
+names = []  # put ur 1st connection's names(for now...will fix to use easily soon)
 
-names = [] #pur ur 1st connection's names(for now...will fix to use easily soon)
-CONST_ID = "id"# put ur id
-CONST_PW = "pw"# put ur password
+CONST_ID = config_constants.CONST_ID # read from config_constants.py. put your own id and pw
+CONST_PW = config_constants.CONST_PW
 
 def do():
 	driver = webdriver.Chrome('')#put ur path for chrome webdriver
