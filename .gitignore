@@ -1,2 +1,9 @@
 config_constants.py
 *.csv
+*.zip
+
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/*.iml
+.idea/inspectionProfiles
