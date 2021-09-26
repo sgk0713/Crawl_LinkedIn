@@ -4,6 +4,7 @@
 
 import csv
 import time
+import logger
 
 import openpyxl
 from bs4 import BeautifulSoup as bs
@@ -154,7 +155,7 @@ def checkFile():
             if (first != None and second != None and first == second):
                 ewr.writerow([i - 2, j - 2, first, second])
                 sheet1.cell(j, 4).value = ""
-                print(i, j, first, second)
+                logger.log(f'{i}, {j}, {first}, {second}')
                 continue
 
     wb.close()
