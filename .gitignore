@@ -2,6 +2,7 @@ config_constants.py
 *.csv
 *.zip
 *.xlsx
+chromedriver
 
 .idea/misc.xml
 .idea/modules.xml
