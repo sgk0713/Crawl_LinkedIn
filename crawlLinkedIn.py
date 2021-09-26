@@ -14,6 +14,16 @@ from selenium.webdriver.common.keys import Keys
 
 import config_constants
 
+Login_Button_XPATH = '//*[@id="login-submit"]'
+SEARCH_FIELD_XPATH = '//*[@id="ember64"]'
+SEARCH_RESULT_FIRST_ITEM_SELECTOR = '#ember59 > ul > li:nth-child(1)'
+
+NAME_FIELD_SELECTOR = 'div.pv-top-card-v2-section__info.mr5 > div:nth-child(1) > h1'
+CONTACT_FIELD_SELECTOR = 'span.pv-top-card-v2-section__entity-name.pv-top-card-v2-section__contact-info.ml2.t-14.t-black.t-bold'
+
+WEBSITE_ROOT_IN_CONTACT_SELECTOR = 'section.pv-contact-info__contact-type.ci-websites > ul li'
+EMAIL_FIELD_IN_CONTACT_SELECTOR = 'div > section.pv-contact-info__contact-type.ci-email > div > a'
+
 names = []  # put ur 1st connection's names(for now...will fix to use easily soon)
 
 CONST_ID = config_constants.CONST_ID  # read from config_constants.py. put your own id and pw
@@ -27,7 +37,7 @@ def do():
     driver.get('https://www.linkedin.com/')
     driver.find_element_by_name('session_key').send_keys(CONST_ID)
     driver.find_element_by_name('session_password').send_keys(CONST_PW)
-    driver.find_element_by_xpath('//*[@id="login-submit"]').click()
+    driver.find_element_by_xpath(Login_Button_XPATH).click()
 
     # get length of list
     max = len(names)
@@ -48,11 +58,11 @@ def do():
 
         if (True):
             try:
-                driver.find_element_by_xpath('//*[@id="ember64"]').clear()
-                driver.find_element_by_xpath('//*[@id="ember64"]').clear()
-                driver.find_element_by_xpath('//*[@id="ember64"]').send_keys(names[i])
+                driver.find_element_by_xpath(SEARCH_FIELD_XPATH).clear()
+                driver.find_element_by_xpath(SEARCH_FIELD_XPATH).clear()
+                driver.find_element_by_xpath(SEARCH_FIELD_XPATH).send_keys(names[i])
                 time.sleep(2)
-                element = driver.find_element_by_css_selector('#ember59 > ul > li:nth-child(1)')
+                element = driver.find_element_by_css_selector(SEARCH_RESULT_FIRST_ITEM_SELECTOR)
 
                 # ActionChains(driver).key_down(Keys.SHIFT).click(element).key_up(Keys.SHIFT).perform()
 
@@ -60,9 +70,9 @@ def do():
                 # time.sleep(2)
                 driver.switch_to.window(driver.window_handles[1])
                 name = driver.find_element_by_css_selector(
-                    'div.pv-top-card-v2-section__info.mr5 > div:nth-child(1) > h1').text
+                    NAME_FIELD_SELECTOR).text
                 temp = driver.find_element_by_css_selector(
-                    'span.pv-top-card-v2-section__entity-name.pv-top-card-v2-section__contact-info.ml2.t-14.t-black.t-bold')
+                    CONTACT_FIELD_SELECTOR)
                 ActionChains(driver).click(temp).perform()
             except:
                 driver.switch_to.window(driver.window_handles[0])
@@ -72,14 +82,14 @@ def do():
             email = ""
             try:
                 lists = driver.find_elements_by_css_selector(
-                    'section.pv-contact-info__contact-type.ci-websites > ul li')
+                    WEBSITE_ROOT_IN_CONTACT_SELECTOR)
                 for list in lists:
                     homepages.append(list.find_element_by_css_selector('div a').get_attribute("href"))
             except:
                 homepages = None
             try:
                 email = driver.find_element_by_css_selector(
-                    'div > section.pv-contact-info__contact-type.ci-email > div > a').text
+                    EMAIL_FIELD_IN_CONTACT_SELECTOR).text
             except:
                 email = None
             try:
