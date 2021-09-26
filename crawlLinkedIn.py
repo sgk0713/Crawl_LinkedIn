@@ -14,12 +14,12 @@ from selenium.webdriver.common.keys import Keys
 
 import config_constants
 
-Login_Button_XPATH = '//*[@id="login-submit"]'
-SEARCH_FIELD_XPATH = '//*[@id="ember64"]'
-SEARCH_RESULT_FIRST_ITEM_SELECTOR = '#ember59 > ul > li:nth-child(1)'
+Login_Button_XPATH = '//*[@id="main-content"]/section[1]/div[2]/form/button'
+SEARCH_FIELD_XPATH = '//*[@id="mn-connections-search-input"]'
+SEARCH_RESULT_FIRST_ITEM_SELECTOR = 'span.mn-connection-card__name.t-16.t-black.t-bold'
 
-NAME_FIELD_SELECTOR = 'div.pv-top-card-v2-section__info.mr5 > div:nth-child(1) > h1'
-CONTACT_FIELD_SELECTOR = 'span.pv-top-card-v2-section__entity-name.pv-top-card-v2-section__contact-info.ml2.t-14.t-black.t-bold'
+NAME_FIELD_SELECTOR = 'div.display-flex.justify-space-between.pt2 > div > div:nth-child(1) > h1'
+CONTACT_FIELD_SELECTOR = 'div.pb2 > span.pv-text-details__separator.t-black--light > a'
 
 WEBSITE_ROOT_IN_CONTACT_SELECTOR = 'section.pv-contact-info__contact-type.ci-websites > ul li'
 EMAIL_FIELD_IN_CONTACT_SELECTOR = 'div > section.pv-contact-info__contact-type.ci-email > div > a'
