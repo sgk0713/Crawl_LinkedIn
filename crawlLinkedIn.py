@@ -15,9 +15,18 @@ from selenium.webdriver.common.keys import Keys
 import config_constants
 import logger
 
-previousCompletedFileName = 'test.xlsx' # replace your last completed crawled file name. if not exist, just put any name you want(not blank)
-mergedFileName = f"Merged_{time.strftime('%y%m%d_%I%M%S', time.localtime(time.time()))}.xlsx"
+mergedDir = "./merged"
+blankEmailDir = "./blankEmail"
+errorDir = "./error"
+crawledDir = "./crawled"
+
+previousCompletedFileName = f'test.xlsx'  # replace your last completed crawled file name. if not exist, just put any name you want(not blank)
+currentTime = time.strftime('%y%m%d_%I%M%S', time.localtime(time.time()))
+mergedFileName = f"{mergedDir}/Merged_{currentTime}.xlsx"
 connectionFileName = 'Connections.csv'
+blankEmailFileName = f'{blankEmailDir}/blank_email_{currentTime}.csv'
+crawledFileName = f'{crawledDir}/crawled_{currentTime}.csv'
+errorFileName = f'{errorDir}/error_{currentTime}.csv'
 
 Login_Button_XPATH = '//*[@id="main-content"]/section[1]/div[2]/form/button'
 SEARCH_FIELD_XPATH = '//*[@id="mn-connections-search-input"]'
@@ -29,7 +38,8 @@ CONTACT_FIELD_SELECTOR = 'div.pb2 > span.pv-text-details__separator.t-black--lig
 WEBSITE_ROOT_IN_CONTACT_SELECTOR = 'section.pv-contact-info__contact-type.ci-websites > ul li'
 EMAIL_FIELD_IN_CONTACT_SELECTOR = 'div > section.pv-contact-info__contact-type.ci-email > div > a'
 
-names = [] # it will be filled from connections file
+names = []  # it will be filled from connections file
+namesRowMap = {}  # key: name, value: rowIndex
 
 CONST_ID = config_constants.CONST_ID  # read from config_constants.py. put your infos at config_constants.py file
 CONST_PW = config_constants.CONST_PW
@@ -206,5 +216,50 @@ def mergeConnectionsFile():
     logger.log(f'addedCount from connection: {addedCount}')
 
 
+def extractCrawlingList():
+    if not os.path.isfile(mergedFileName):
+        logger.log("initializeUpdateList no file")
+        exit(1)
+    else:
+        logger.log("initializeUpdateList start read")
+
+    wb = openpyxl.load_workbook(mergedFileName)
+    wbactive = wb.active
+
+    blankEmailFile = open(blankEmailFileName, 'w', encoding='utf-8', newline='')
+    writer = csv.writer(blankEmailFile)
+
+    blankEmailCount = 0
+    for row in range(3, wbactive.max_row + 1):  # cells starts index 1, not 0
+        try:
+            email = wbactive.cell(column=5, row=row).value
+            fullName = wbactive.cell(column=4, row=row).value
+            if isBlankOrNone(email) and not isBlankOrNone(fullName):
+                blankEmailCount += 1
+                names.append(fullName)
+                writer.writerow([fullName])
+                namesRowMap[fullName] = row
+        except Exception as e:
+            logger.log('exception from initializeUpdateList')
+            logger.log(e)
+    wb.save(mergedFileName)
+    wb.close()
+    blankEmailFile.close()
+
+    logger.log(f'Blank Email Count: {blankEmailCount}')
+
+
+def initDir():
+    dirList = [mergedDir, blankEmailDir, errorDir, crawledDir]
+    try:
+        for dir in dirList:
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+    except OSError:
+        logger.log('Error: Creating directory. ' + dir)
+
+
 if __name__ == '__main__':
+    initDir()
     mergeConnectionsFile()
+    extractCrawlingList()
