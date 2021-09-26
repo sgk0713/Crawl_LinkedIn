@@ -26,12 +26,13 @@ EMAIL_FIELD_IN_CONTACT_SELECTOR = 'div > section.pv-contact-info__contact-type.c
 
 names = []  # put ur 1st connection's names(for now...will fix to use easily soon)
 
-CONST_ID = config_constants.CONST_ID  # read from config_constants.py. put your own id and pw
+CONST_ID = config_constants.CONST_ID  # read from config_constants.py. put your infos at config_constants.py file
 CONST_PW = config_constants.CONST_PW
+DRIVER_PATH = config_constants.CONST_DRIVER_PATH
 
 
 def do():
-    driver = webdriver.Chrome('')  # put ur path for chrome webdriver
+    driver = webdriver.Chrome(DRIVER_PATH)
     driver.implicitly_wait(1)
     # login
     driver.get('https://www.linkedin.com/')
