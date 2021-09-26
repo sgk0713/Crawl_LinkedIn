@@ -3,17 +3,21 @@
 # python 3.6
 
 import csv
+import os
 import time
-import logger
 
 import openpyxl
-from bs4 import BeautifulSoup as bs
 from openpyxl import Workbook
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 import config_constants
+import logger
+
+previousCompletedFileName = 'test.xlsx' # replace your last completed crawled file name. if not exist, just put any name you want(not blank)
+mergedFileName = f"Merged_{time.strftime('%y%m%d_%I%M%S', time.localtime(time.time()))}.xlsx"
+connectionFileName = 'Connections.csv'
 
 Login_Button_XPATH = '//*[@id="main-content"]/section[1]/div[2]/form/button'
 SEARCH_FIELD_XPATH = '//*[@id="mn-connections-search-input"]'
@@ -25,7 +29,7 @@ CONTACT_FIELD_SELECTOR = 'div.pb2 > span.pv-text-details__separator.t-black--lig
 WEBSITE_ROOT_IN_CONTACT_SELECTOR = 'section.pv-contact-info__contact-type.ci-websites > ul li'
 EMAIL_FIELD_IN_CONTACT_SELECTOR = 'div > section.pv-contact-info__contact-type.ci-email > div > a'
 
-names = []  # put ur 1st connection's names(for now...will fix to use easily soon)
+names = [] # it will be filled from connections file
 
 CONST_ID = config_constants.CONST_ID  # read from config_constants.py. put your infos at config_constants.py file
 CONST_PW = config_constants.CONST_PW
@@ -116,52 +120,91 @@ def do():
     errorFile.close()
 
 
-def checkFile():
-    wb = openpyxl.load_workbook('linkedIn_Final.xlsx')
-    real = openpyxl.load_workbook('linkedin_list.xlsx')
+def isBlankOrNone(myString):
+    if type(myString) is str and myString.strip():
+        # myString is not None AND myString is not empty or blank
+        return False
+    # myString is None OR myString is empty or blank
+    return True
 
-    ws = wb.active
-    re = real.active
 
-    errorFile = open('errorCheck.csv', 'w', encoding='utf-8', newline='')
-    ewr = csv.writer(errorFile)
+def mergeConnectionsFile():
+    if not os.path.isfile(connectionFileName):
+        logger.log("no connection file")
+        exit(1)
+    else:
+        logger.log("start read")
 
-    max = 3247
+    isPreviousFileExist = os.path.isfile(previousCompletedFileName)
 
-    wt = Workbook()
+    if not isPreviousFileExist:
+        wt = Workbook()
+        wtactive = wt.active
+        wtactive.title = 'Sheet1'
+        titles = ["First Name",
+                  "Last Name",
+                  "Full Name",
+                  "Email Address",
+                  "Company",
+                  "Position",
+                  "Connected On",
+                  "HomePage"]
+        for (index, title) in enumerate(titles):
+            wtactive.cell(column=index + 2, row=2).value = title
+        wt.save(previousCompletedFileName)
+        wt.close()
 
-    # 파일 이름을 정하고, 데이터를 넣을 시트를 활성화합니다.
-    sheet1 = wt.active
-    file_name = 'test.xlsx'
+    wb = openpyxl.load_workbook(previousCompletedFileName)
+    wbactive = wb.active
+    firstLastPositionList = set()
+    for line in wbactive.iter_rows(values_only=True):
+        try:
+            if isBlankOrNone(line[5]):
+                company = ''
+            else:
+                company = line[5]
+            name = line[1] + line[2] + company
+            firstLastPositionList.add(name)  # first last companyname
+        except Exception as e:
+            logger.log("exception from reading previous file")
+            logger.log(e)
 
-    # 시트의 이름을 정합니다.
-    sheet1.title = 'Sheet1'
-
-    # cell 함수를 이용해 넣을 데이터의 행렬 위치를 지정해줍니다.
-    for row_index in range(2, max):
-        sheet1.cell(row=row_index, column=1).value = ws.cell(row_index, 1).value
-        sheet1.cell(row=row_index, column=2).value = ws.cell(row_index, 2).value
-        sheet1.cell(row=row_index, column=3).value = re.cell(row_index, 10).value
-        sheet1.cell(row=row_index, column=4).value = ws.cell(row_index, 3).value
-        sheet1.cell(row=row_index, column=5).value = ws.cell(row_index, 4).value
-        sheet1.cell(row=row_index, column=6).value = ws.cell(row_index, 5).value
-        sheet1.cell(row=row_index, column=7).value = ws.cell(row_index, 6).value
-
-    for i in range(2, max - 1):
-
-        for j in range(i + 1, max):
-            first = ws.cell(i, 3).value
-            second = ws.cell(j, 3).value
-            if (first != None and second != None and first == second):
-                ewr.writerow([i - 2, j - 2, first, second])
-                sheet1.cell(j, 4).value = ""
-                logger.log(f'{i}, {j}, {first}, {second}')
+    nameFile = open(connectionFileName, 'r', encoding='utf-8', newline='')
+    connectionListReader = csv.reader(nameFile)
+    startRead = False
+    addedCount = 0
+    for line in connectionListReader:
+        try:
+            if not line[0].strip() and not line[1].strip():
                 continue
+            if startRead:
+                name = line[0] + line[1] + line[3]
+                element = firstLastPositionList.intersection([name])
+                needCopy = len(element) == 0
+                if needCopy:
+                    row = ['',
+                           line[0],
+                           line[1],
+                           line[0] + ' ' + line[1]
+                           ]
 
+                    for index, item in enumerate(line):
+                        if index > 1:
+                            row.append(item)
+                    wbactive.append(row)
+                    addedCount += 1
+
+            if line[0] == 'First Name':
+                startRead = True
+        except Exception as e:
+            logger.log("exception from merging connections and previous files")
+            logger.log(e)
+
+    wb.save(mergedFileName)
     wb.close()
-    wt.save(filename=file_name)
-    errorFile.close()
+    nameFile.close()
+    logger.log(f'addedCount from connection: {addedCount}')
 
 
-checkFile()
-# do()
+if __name__ == '__main__':
+    mergeConnectionsFile()
