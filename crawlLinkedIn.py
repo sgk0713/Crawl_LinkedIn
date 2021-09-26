@@ -22,12 +22,13 @@ errorDir = "./error"
 crawledDir = "./crawled"
 
 previousCompletedFileName = f'test.xlsx'  # replace your last completed crawled file name. if not exist, just put any name you want(not blank)
-currentTime = time.strftime('%y%m%d_%I%M%S', time.localtime(time.time()))
-mergedFileName = f"{mergedDir}/Merged_{currentTime}.xlsx"
-connectionFileName = 'Connections.csv'
-blankEmailFileName = f'{blankEmailDir}/blank_email_{currentTime}.csv'
-crawledFileName = f'{crawledDir}/crawled_{currentTime}.csv'
-errorFileName = f'{errorDir}/error_{currentTime}.csv'
+global currentTime
+global mergedFileName
+global connectionFileName
+global blankEmailFileName
+global crawledFileName
+global errorFileName
+global mergeErrorFileName
 
 Login_Button_XPATH = '//*[@id="main-content"]/section[1]/div[2]/form/button'
 SEARCH_FIELD_XPATH = '//*[@id="mn-connections-search-input"]'
@@ -72,10 +73,10 @@ def moveToConnectionPage():
     driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
 
 
-def startCrawling():
+def startCrawling(start: int = 0, itemCount: int = 100):
     max = len(names)
-    start = 0
-    end = min(start + 100, max)
+    start = start
+    end = min(start + itemCount, max)
 
     isFileExist = os.path.isfile(crawledFileName)
 
@@ -317,8 +318,76 @@ def initDir():
         logger.log('Error: Creating directory. ' + dir)
 
 
+def updateMergedFile():
+    if not os.path.isfile(crawledFileName) or not os.path.isfile(mergedFileName):
+        logger.log("no file")
+        exit(1)
+    else:
+        logger.log("start read")
+
+    wb = openpyxl.load_workbook(mergedFileName)
+    wbactive = wb.active
+    crawledFile = open(crawledFileName, 'r', encoding='utf-8', newline='')
+    mergeErrorFile = open(mergeErrorFileName, 'a', encoding='utf-8', newline='')
+
+    wtr = csv.writer(mergeErrorFile)
+    rdr = csv.reader(crawledFile)
+    startRead = False
+    for line in rdr:
+        try:
+            if not line[0].strip() and not line[1].strip():
+                continue
+            if startRead:
+                # fullName = line[2]
+                email = line[3]
+                fullName = line[1]
+                # email = line[2]
+                homePages = []
+                for index in range(4, len(line)):
+                    homePages.append(line[index])
+                if namesRowMap[fullName] is not None:
+                    row = namesRowMap[fullName]
+                    if not isBlankOrNone(wbactive.cell(column=5, row=row).value):
+                        continue
+                    wbactive.cell(column=5, row=row).value = email
+                    for index in range(9, 9 + len(homePages)):
+                        wbactive.cell(column=index, row=row).value = homePages[9 - index]
+            if line[0] == 'Number':
+                startRead = True
+        except Exception as e:
+            logger.log('updateMergedFile')
+            wtr.writerow(line)
+            logger.log(e)
+
+    wb.save(mergedFileName)
+    wb.close()
+    crawledFile.close()
+    mergeErrorFile.close()
+
+
+def initFileNamesWithCurrentTime():
+    global currentTime
+    global mergedFileName
+    global connectionFileName
+    global blankEmailFileName
+    global crawledFileName
+    global errorFileName
+    global mergeErrorFileName
+
+    currentTime = time.strftime('%y%m%d_%I%M%S', time.localtime(time.time()))
+    mergedFileName = f"{mergedDir}/Merged_{currentTime}.xlsx"
+    connectionFileName = 'Connections.csv'
+    blankEmailFileName = f'{blankEmailDir}/blank_email_{currentTime}.csv'
+    crawledFileName = f'{crawledDir}/crawled_{currentTime}.csv'
+    errorFileName = f'{errorDir}/error_{currentTime}.csv'
+    mergeErrorFileName = f'{errorDir}/mergeError_{currentTime}.csv'
+
+
 if __name__ == '__main__':
     initDir()
+
+    initFileNamesWithCurrentTime()
     mergeConnectionsFile()
     extractCrawlingList()
-    startCrawling()
+    startCrawling(0, 100)
+    updateMergedFile()
