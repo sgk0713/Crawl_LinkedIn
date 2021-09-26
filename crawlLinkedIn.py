@@ -4,6 +4,7 @@
 
 import csv
 import os
+import random
 import time
 
 import openpyxl
@@ -72,71 +73,86 @@ def moveToConnectionPage():
 
 
 def startCrawling():
+    max = len(names)
+    start = 0
+    end = min(start + 100, max)
+
+    isFileExist = os.path.isfile(crawledFileName)
+
+    f = open(crawledFileName, 'a', encoding='utf-8', newline='')
+    wr = csv.writer(f)
+
+    errorFile = open(errorFileName, 'a', encoding='utf-8', newline='')
+    ewr = csv.writer(errorFile)
+
+    if not isFileExist:
+        wr.writerow(['Number', 'TypedName', 'ProfileName', 'Email', 'HomePage'])
+        ewr.writerow(['i'])
+
+    logger.log(f'total : {max} start : {start} end : {end}')
+
     initChromeDriver()
     login()
     time.sleep(10)
     moveToConnectionPage()
+    time.sleep(10)
 
-    # get length of list
-    max = len(names)
+    breakTimes = [1, 1, 1]
 
-    f = open('linkedin_list.csv', 'w', encoding='utf-8', newline='')
-    wr = csv.writer(f)
-    wr.writerow(['Number', 'Name', 'Email', 'HomePage'])
+    for i in range(start, end):
+        time.sleep(breakTimes[i % 3])
+        if i % 3 == 0:
+            breakTimes = getBreakTimes()
+        try:
+            search_name(names[i])
+            time.sleep(3)
+            clickFirstItemAndMoveToPage()
+            time.sleep(3)
 
-    errorFile = open('error.csv', 'w', encoding='utf-8', newline='')
-    ewr = csv.writer(errorFile)
-    ewr.writerow(['i'])
-
-    for i in range(0, max):
-        # na = unicode(name, "utf8", errors="ignore")
-
-        if (True):
-            try:
-                search_name(names[i])
-                time.sleep(3)
-
-                clickFirstItemAndMoveToPage()
-
-                time.sleep(3)
-
-                name = driver.find_element_by_css_selector(NAME_FIELD_SELECTOR).text
-
-                clickContactField()
-            except:
-                driver.switch_to.window(driver.window_handles[0])
-                ewr.writerow([f'i == {i}'])
-                continue
-            homepages = []
-            email = ""
-            try:
-                lists = driver.find_elements_by_css_selector(
-                    WEBSITE_ROOT_IN_CONTACT_SELECTOR)
-                for list in lists:
-                    homepages.append(list.find_element_by_css_selector('div a').get_attribute("href"))
-            except:
-                homepages = None
-            try:
-                email = driver.find_element_by_css_selector(
-                    EMAIL_FIELD_IN_CONTACT_SELECTOR).text
-            except:
-                email = None
-            try:
-                driver.close()
-                driver.switch_to.window(driver.window_handles[0])
-                logger.log(f'#{i}>> {email}')
-                list = []
-                list.append(i)
-                list.append(name)
-                list.append(email)
-                if (homepages is not None):
-                    for homepage in homepages:
-                        list.append(homepage)
-                wr.writerow(list)
-            except:
-                driver.switch_to.window(driver.window_handles[0])
-                ewr.writerow([f'i == {i}'])
-                continue
+            name = driver.find_element_by_css_selector(NAME_FIELD_SELECTOR).text
+            clickContactField()
+        except Exception as e:
+            logger.log(f'search {i} {names[i]}')
+            logger.log(e)
+            driver.switch_to.window(driver.window_handles[0])
+            ewr.writerow(['i == %d' % i, names[i]])
+            break
+        homepages = []
+        email = ""
+        try:
+            lists = driver.find_elements_by_css_selector(WEBSITE_ROOT_IN_CONTACT_SELECTOR)
+            for list in lists:
+                homepages.append(list.find_element_by_css_selector('div a').get_attribute("href"))
+        except Exception as e:
+            logger.log("NO Website Field Exception")
+            logger.log(e)
+            homepages = None
+        try:
+            email = driver.find_element_by_css_selector(EMAIL_FIELD_IN_CONTACT_SELECTOR).text
+        except Exception as e:
+            logger.log('No Email')
+            logger.log(e)
+            email = '-'
+        try:
+            time.sleep(1)
+            driver.close()
+            driver.switch_to.window(driver.window_handles[0])
+            logger.log(f'#{i} {name} >> {email}')
+            list = []
+            list.append(i)  # 'Number'
+            list.append(names[i])  # 'TypedName'
+            list.append(name)  # 'ProfileName'
+            list.append(email)  # 'Email'
+            if homepages is not None:  # 'HomePage'
+                for homepage in homepages:
+                    list.append(homepage)
+            wr.writerow(list)
+        except Exception as e:
+            logger.log('homepages error')
+            logger.log(e)
+            driver.switch_to.window(driver.window_handles[0])
+            ewr.writerow(['i == %d' % i])
+            continue
     f.close()
     errorFile.close()
 
@@ -276,6 +292,19 @@ def extractCrawlingList():
     blankEmailFile.close()
 
     logger.log(f'Blank Email Count: {blankEmailCount}')
+
+
+def getBreakTimes():
+    breakTimes = []
+    firstBreakTime = random.randint(10, 20)
+    secondBreakTime = random.randint(10, 45 - firstBreakTime)
+    thirdBreakTime = 45 - secondBreakTime - firstBreakTime
+    breakTimes.clear()
+    breakTimes.append(firstBreakTime)
+    breakTimes.append(secondBreakTime)
+    breakTimes.append(thirdBreakTime)
+    logger.log(f'breaktime reset {breakTimes[0]}, {breakTimes[1]}, {breakTimes[2]}')
+    return breakTimes
 
 
 def initDir():
