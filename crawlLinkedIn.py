@@ -45,19 +45,40 @@ CONST_ID = config_constants.CONST_ID  # read from config_constants.py. put your 
 CONST_PW = config_constants.CONST_PW
 DRIVER_PATH = config_constants.CONST_DRIVER_PATH
 
+global driver
 
-def startCrawling():
+
+def initChromeDriver():
+    global driver
     driver = webdriver.Chrome(DRIVER_PATH)
     driver.implicitly_wait(1)
-    # login
+
+
+def login():
+    if driver is None:
+        logger.log("driver is NONE")
+        exit(1)
     driver.get('https://www.linkedin.com/')
     driver.find_element_by_name('session_key').send_keys(CONST_ID)
     driver.find_element_by_name('session_password').send_keys(CONST_PW)
     driver.find_element_by_xpath(Login_Button_XPATH).click()
 
+
+def moveToConnectionPage():
+    if driver is None:
+        logger.log("driver is NONE")
+        exit(1)
+    driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
+
+
+def startCrawling():
+    initChromeDriver()
+    login()
+    time.sleep(10)
+    moveToConnectionPage()
+
     # get length of list
     max = len(names)
-    driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
 
     f = open('linkedin_list.csv', 'w', encoding='utf-8', newline='')
     wr = csv.writer(f)
@@ -72,22 +93,16 @@ def startCrawling():
 
         if (True):
             try:
-                driver.find_element_by_xpath(SEARCH_FIELD_XPATH).clear()
-                driver.find_element_by_xpath(SEARCH_FIELD_XPATH).clear()
-                driver.find_element_by_xpath(SEARCH_FIELD_XPATH).send_keys(names[i])
-                time.sleep(2)
-                element = driver.find_element_by_css_selector(SEARCH_RESULT_FIRST_ITEM_SELECTOR)
+                search_name(names[i])
+                time.sleep(3)
 
-                # ActionChains(driver).key_down(Keys.SHIFT).click(element).key_up(Keys.SHIFT).perform()
+                clickFirstItemAndMoveToPage()
 
-                ActionChains(driver).key_down(Keys.COMMAND).click(element).key_up(Keys.COMMAND).perform()
-                # time.sleep(2)
-                driver.switch_to.window(driver.window_handles[1])
-                name = driver.find_element_by_css_selector(
-                    NAME_FIELD_SELECTOR).text
-                temp = driver.find_element_by_css_selector(
-                    CONTACT_FIELD_SELECTOR)
-                ActionChains(driver).click(temp).perform()
+                time.sleep(3)
+
+                name = driver.find_element_by_css_selector(NAME_FIELD_SELECTOR).text
+
+                clickContactField()
             except:
                 driver.switch_to.window(driver.window_handles[0])
                 ewr.writerow([f'i == {i}'])
@@ -107,7 +122,7 @@ def startCrawling():
             except:
                 email = None
             try:
-                driver.close();
+                driver.close()
                 driver.switch_to.window(driver.window_handles[0])
                 logger.log(f'#{i}>> {email}')
                 list = []
@@ -124,6 +139,24 @@ def startCrawling():
                 continue
     f.close()
     errorFile.close()
+
+
+def clickContactField():
+    contactField = driver.find_element_by_css_selector(
+        CONTACT_FIELD_SELECTOR)
+    ActionChains(driver).click(contactField).perform()
+
+
+def clickFirstItemAndMoveToPage():
+    element = driver.find_element_by_css_selector(SEARCH_RESULT_FIRST_ITEM_SELECTOR)
+    ActionChains(driver).key_down(Keys.COMMAND).click(element).key_up(Keys.COMMAND).perform()
+    driver.switch_to.window(driver.window_handles[1])
+
+
+def search_name(name: str):
+    driver.find_element_by_xpath(SEARCH_FIELD_XPATH).clear()
+    driver.find_element_by_xpath(SEARCH_FIELD_XPATH).clear()
+    driver.find_element_by_xpath(SEARCH_FIELD_XPATH).send_keys(name)
 
 
 def isBlankOrNone(myString):
