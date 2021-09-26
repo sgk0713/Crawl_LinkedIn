@@ -46,7 +46,7 @@ CONST_PW = config_constants.CONST_PW
 DRIVER_PATH = config_constants.CONST_DRIVER_PATH
 
 
-def do():
+def startCrawling():
     driver = webdriver.Chrome(DRIVER_PATH)
     driver.implicitly_wait(1)
     # login
@@ -57,9 +57,7 @@ def do():
 
     # get length of list
     max = len(names)
-    main = driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
-    html = driver.page_source
-    soup = bs(html, 'html.parser')
+    driver.get('https://www.linkedin.com/mynetwork/invite-connect/connections/')
 
     f = open('linkedin_list.csv', 'w', encoding='utf-8', newline='')
     wr = csv.writer(f)
@@ -92,7 +90,7 @@ def do():
                 ActionChains(driver).click(temp).perform()
             except:
                 driver.switch_to.window(driver.window_handles[0])
-                ewr.writerow(['i == %d' % i])
+                ewr.writerow([f'i == {i}'])
                 continue
             homepages = []
             email = ""
@@ -111,7 +109,7 @@ def do():
             try:
                 driver.close();
                 driver.switch_to.window(driver.window_handles[0])
-                print("#", i, ' >> ', email)
+                logger.log(f'#{i}>> {email}')
                 list = []
                 list.append(i)
                 list.append(name)
@@ -122,10 +120,8 @@ def do():
                 wr.writerow(list)
             except:
                 driver.switch_to.window(driver.window_handles[0])
-                ewr.writerow(['i == %d' % i])
+                ewr.writerow([f'i == {i}'])
                 continue
-        # if(i==5):
-        # 	break
     f.close()
     errorFile.close()
 
@@ -263,3 +259,4 @@ if __name__ == '__main__':
     initDir()
     mergeConnectionsFile()
     extractCrawlingList()
+    startCrawling()
